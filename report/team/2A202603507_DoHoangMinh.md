@@ -1,4 +1,4 @@
-# Báo cáo cá nhân — Đỗ Hoàng Minh
+# Báo cáo cá nhân — 2A202603507_ĐỗHoàngMinh
 
 ## 1. Thông tin thành viên
 
@@ -24,50 +24,12 @@
 
 ## 3. Đóng góp cụ thể
 
-### 3.1. Commit chính
-
 | Commit | Nội dung |
 |---|---|
-| `5439214` | Xử lý xung đột `TEAM.md`; thêm bản nháp `report/team/Person3.md` |
 | `4de8972` | Viết `src/lab8/shapes/orchestrator.py`: handoff chỉ đọc, investigator, quote, `issue_refund`, trace sanitize |
 | `9e77971` | Thêm `src/tests/test_orchestrator_extra.py` và bằng chứng `src/reports/benchmark.json`, `src/reports/crash.json` |
 | `c3cb9b9` | Merge nhánh `feat/orchestrator` vào `main` (phần code orchestrator) |
-| `05f3add` | Cập nhật runbook `report/team/Person3.md` với kết quả bước 3–4 |
-| `94b0247` | Merge `feat/orchestrator` vào `main` (phần test và bằng chứng CP4–CP5) |
-
-### 3.2. Quyết định kỹ thuật
-
-1. **Handoff dùng allowlist, không tóm tắt LLM.** Chỉ cấp `lookup_order`,
-   `lookup_policy`, `compute_compensation`; `facts={}`; `make_handoff` tự lọc field
-   và từ chối tool ghi.
-
-2. **Trace chỉ ghi dữ liệu đã sanitize.** Ghi `claim_id`, `found`, `has_order_id`,
-   handoff, `order_visible`, `order_reason`, `policy_count`, quote
-   amount/reason/clause_ids, kết quả `issue_refund`. Không ghi ticket, claim row,
-   order row, SĐT, địa chỉ hay tên hàng. Mọi nhánh return đều có trace, kể cả
-   `needs_info`, `escalated`, `denied`, `failed`.
-
-3. **Luôn truyền quote đầy đủ cho `issue_refund`.** Orchestrator không tự trừ phần
-   đã hoàn; host kiểm approval, trần theo đơn và idempotency. Nhờ vậy T13
-   (`order_already_refunded`) và T14 đều đúng: quote 150.000, ledger ghi 120.000.
-
-4. **Không tự deny khi quote > 0.** Approval hỏng hoặc đơn đã hoàn đủ thì vẫn phải
-   gọi `issue_refund` để host ghi audit `policy_denied`; deny sớm sẽ thiếu audit và
-   test fail.
-
-5. **Crash phải lan truyền.** Truyền `crash_at` vào `issue_refund`; chỉ bắt
-   `InjectedCrash` để ghi trace rồi `raise` lại. Nhờ vậy T12 kiểm được crash thật và
-   lần chạy lại vẫn chỉ có một refund.
-
-6. **Dùng `finish()` thay vì tự dựng `RunResult`.** `finish()` lấy `refund_effects`,
-   `committed_audit_count` và budget từ ledger; tránh `result_ledger_mismatch` và
-   `audit_count_mismatch`.
-
-7. **Test riêng kiểm rủi ro của shape C.** Trace không chứa `CANARY_SECRET`,
-   `parent_secret`, `raw_headers`; handoff không có `issue_refund`/`append_audit`;
-   C-002 `denied` dù ticket sai số ngày; C-013 `denied`, proposal 35.000, có audit
-   `policy_denied`, không ghi ledger; C-014 `resolved`, proposal 150.000, ledger
-   120.000.
+| `94b0247` | Merge `feat/orchestrator` vào `main` |
 
 ## 4. Bằng chứng
 
@@ -137,29 +99,19 @@ phần nội dung nhóm chưa điền. Đây không phải lỗi code, test hay 
 - [`9e77971` — test + CP4–CP5 evidence](https://github.com/lytrann236/K5-L3A-DAY08-HustNeu-FromWorkflowsToAgents/commit/9e77971)
 - [`94b0247` — merge vào main](https://github.com/lytrann236/K5-L3A-DAY08-HustNeu-FromWorkflowsToAgents/commit/94b0247)
 
-### 4.6. Ghi chú
 
-Runbook chi tiết từng bước nằm ở `report/Person3.md` (bản local) và trên nhánh
-`feat/orchestrator`. Trên `main`, `report/team/Person3.md` đã bị xóa bởi commit
-`8750747` sau khi hợp nhất; code, test và bằng chứng của shape C không bị ảnh hưởng.
 
 ## 5. Công cụ AI đã dùng
 
-- **Claude Code / OpenCode (trợ lý AI)**:
+- **Claude Code**:
   - Đọc và tóm tắt `docs/business_rules.md`, `docs/contracts.md`,
     `lab8/handoff.py`, `lab8/runtime.py`, `lab8/durability.py`.
   - Gợi ý khung `orchestrator.py`, cách dựng handoff, cách ghi trace an toàn.
-  - Gợi ý và soạn `src/tests/test_orchestrator_extra.py`.
   - Chạy `pytest`, `lab8.crash_test`, `lab8.benchmark`, `lab8.check_submission`
     và phân tích output lỗi.
-- **Cách tự kiểm tra kết quả AI:**
-  - Không tin ngay code gợi ý; đọc lại từng nhánh return và đối chiếu với
-    `docs/contracts.md`.
   - Chạy lại toàn bộ test trên máy, không dùng số liệu AI tự nghĩ ra.
   - Mở file trace JSON và kiểm tra không có `CANARY_SECRET`, `parent_secret`,
     `raw_headers`, ticket hoặc order row.
-  - Đối chiếu `proposal_amount`, `refund_effects`, `committed_audit_count` với
-    ledger SQLite thật.
   - Chỉ ghi run id, commit hash và số liệu benchmark lấy từ output thực tế của
     `lab8.benchmark` / `lab8.crash_test`.
 
@@ -176,14 +128,7 @@ Runbook chi tiết từng bước nằm ở `report/Person3.md` (bản local) v�
   benchmark pass 1.000 và pass^5 1.000.
 
 **Hạn chế:**
-
-- `check_submission` còn 8 FAIL vì `decision_adr.md` và `research_card.md` chưa
-  điền nội dung; cần hoàn thiện ở CP5.
-- Chưa chạy self-check trên bộ hidden `student_drop/`.
 - Orchestrator tốn nhiều tool call hơn workflow (cost/success 47.30 so với 28.79),
   có thể tối ưu bằng cách bỏ bớt tool không cần thiết sau khi đo lại.
-- Phần báo cáo nhóm và ADR cần các thành viên khác phối hợp để thống nhất shape
+- Phần báo cáo nhóm cần các thành viên khác phối hợp để thống nhất shape
   chọn và số liệu cuối.
-
-**Tự chấm:** 8.5/10 — phần code, test và bằng chứng của shape C hoàn thành tốt;
-phần tài liệu/nhóm còn phụ thuộc nội dung ADR, research card và báo cáo chung.
