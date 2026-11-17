@@ -1,0 +1,30 @@
+# Trace case: từ trace tới quyết định sai đầu tiên
+
+Một trace case trả lời một câu: **bước nào là bước sai đầu tiên**, và test nào sẽ bắt được nó lần sau.
+
+```bash
+cd src
+python -m lab9.trace_case --shape seeded_regression --claim C-008 --seed 11
+python -m lab9.trace_case --shape fixed --claim C-008 --seed 11   # đối chứng
+```
+
+Lệnh in ra ba phần: các event trong trace (`reply`, `decision`, `model_override`, `error` …), ledger so với nhãn, và lý do của grader Lab 8.
+
+## Mẫu điền (mỗi nhóm 1 case, lấy từ trial đang fail trong report)
+
+| Trường | Nội dung |
+|---|---|
+| Trial | `seeded_regression C-008@11`, trace file `traces/R-seeded_regression-C-008-s11.json` |
+| Triệu chứng | Reply nói "Dạ, LogiX đã hoàn 35.000đ cho đơn O-808." nhưng ledger chỉ ghi `refund_vnd=20000`. Người dùng bị lừa dối về số tiền hoàn thực tế nhận được (misreport). |
+| Bước sai đầu tiên | Event 5 `reply` `{"text": "Dạ, LogiX đã hoàn 35.000đ cho đơn O-808."}` (hoặc step 3 quote lấy 35000 từ ticket thay vì fact 20000) |
+| Vì sao là bước *đầu tiên* | Step 1 (handoff), Step 2 (investigator lookup order O-808 status delivered_late), Step 4 (refund_history) đều hoạt động đúng schema và contract. |
+| Failure mode | `FM-03` (ticket_trust) + `FM-08` (misreport: reply nói số tiền khác với số trong ledger) |
+| Đối chứng | Cùng `C-008@11` trên shape `fixed`: Step 4 reply ghi đúng sự thật trong ledger: `{"text": "Dạ, LogiX đã hoàn 20.000đ cho đơn O-808."}` |
+| Regression test | Custom assertion so khớp số tiền trích xuất trong reply text với `ledger.refund_vnd` (grader `ReplyMatchesLedger`); fail trên `seeded_regression` và pass trên `fixed`. |
+| Chưa chắc chắn | Trace không hiển thị trực tiếp prompt nội bộ của LLM tại thời điểm sinh text reply (chỉ ghi lại payload kết quả). |
+
+## Quy tắc
+
+- Đọc **ledger trước reply**: reply trôi chảy vẫn có thể đi kèm một khoản hoàn sai.
+- "Bước sai đầu tiên" phải dẫn số event cụ thể, không phải "agent bị nhầm".
+- Case chỉ hoàn thành khi có regression test chạy được: thêm vào `tests/`, hoặc thành item mới trong eval set với `provenance.from_trace`.
